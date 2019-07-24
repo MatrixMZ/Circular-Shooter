@@ -8,17 +8,34 @@
 
 import SpriteKit
 
-class GameScene: SKScene {
+struct PhysicsCategory {
+    static let Enemy: UInt32 = 0x1 << 0
+    static let SmallBall: UInt32 = 0x1 << 1
+    static let MainBall: UInt32 = 0x1 << 2
+}
+
+class GameScene: SKScene, SKPhysicsContactDelegate {
     
     var MainBall = SKSpriteNode(imageNamed: "Ball")
     var EnemyTimer = Timer()
     
     override func didMove(to view: SKView) {
+        
+        self.physicsWorld.contactDelegate = self
+        
         MainBall.size = CGSize(width: 100, height: 100)
         MainBall.position = CGPoint(x: frame.width / 2, y: frame.height / 2)
         MainBall.color = #colorLiteral(red: 1, green: 1, blue: 1, alpha: 1)
         MainBall.colorBlendFactor = 1.0
         MainBall.zPosition = 1.0
+        
+        MainBall.physicsBody = SKPhysicsBody(circleOfRadius: MainBall.size.width / 2)
+        MainBall.physicsBody?.categoryBitMask = PhysicsCategory.MainBall
+        MainBall.physicsBody?.collisionBitMask = PhysicsCategory.Enemy
+        MainBall.physicsBody?.contactTestBitMask = PhysicsCategory.Enemy
+        MainBall.physicsBody?.affectedByGravity = false
+        MainBall.physicsBody?.isDynamic = false
+        MainBall.name = "MainBall"
         
         self.addChild(MainBall)
         
@@ -26,6 +43,35 @@ class GameScene: SKScene {
         EnemyTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true, block: { (timer) in
             self.Enemies()
         })
+    }
+    
+    func didBegin(_ contact: SKPhysicsContact) {
+        let firstBody = contact.bodyA.node as! SKSpriteNode
+        let secondBody = contact.bodyB.node as! SKSpriteNode
+        
+        if firstBody.name == "Enemy" && secondBody.name == "SmallBall"   {
+            collisionBullet(Enemy: firstBody, SmallBall: secondBody)
+        } else if firstBody.name == "SmallBall" && secondBody.name == "Enemy" {
+            collisionBullet(Enemy: secondBody, SmallBall: firstBody)
+        }
+        
+        if firstBody.name == "MainBall" && secondBody.name == "Enemy"  {
+            
+        } else if  firstBody.name == "Enemy" && secondBody.name == "MainBall"  {
+            
+        }
+        
+    }
+    
+    func collisionBullet(Enemy: SKSpriteNode, SmallBall: SKSpriteNode) {
+        Enemy.physicsBody?.isDynamic = true
+        Enemy.physicsBody?.affectedByGravity = true
+        Enemy.physicsBody?.mass = 5.0
+        
+        SmallBall.physicsBody?.mass = 5.0
+        
+        Enemy.removeAllActions()
+        SmallBall.removeAllActions()
     }
     
     
@@ -49,9 +95,15 @@ class GameScene: SKScene {
             SmallBall.position = MainBall.position
             SmallBall.size = CGSize(width: 30, height: 30)
             SmallBall.physicsBody = SKPhysicsBody(circleOfRadius: SmallBall.size.width / 2)
-            SmallBall.physicsBody?.affectedByGravity = true
             SmallBall.color = #colorLiteral(red: 0.9994240403, green: 0.9855536819, blue: 0, alpha: 1)
             SmallBall.colorBlendFactor = 1.0
+            SmallBall.physicsBody?.categoryBitMask = PhysicsCategory.SmallBall
+            SmallBall.physicsBody?.collisionBitMask = PhysicsCategory.Enemy
+            SmallBall.physicsBody?.contactTestBitMask = PhysicsCategory.Enemy
+            SmallBall.name = "SmallBall"
+            SmallBall.physicsBody?.isDynamic = true
+            SmallBall.physicsBody?.affectedByGravity = true
+            
             
             self.addChild(SmallBall)
             
@@ -75,6 +127,14 @@ class GameScene: SKScene {
         Enemy.size = CGSize(width: 20, height: 20)
         Enemy.color = #colorLiteral(red: 0.9254902005, green: 0.2352941185, blue: 0.1019607857, alpha: 1)
         Enemy.colorBlendFactor = 1.0
+    
+        Enemy.physicsBody = SKPhysicsBody(circleOfRadius: Enemy.size.width / 2)
+        Enemy.physicsBody?.categoryBitMask = PhysicsCategory.Enemy
+        Enemy.physicsBody?.contactTestBitMask = PhysicsCategory.SmallBall | PhysicsCategory.MainBall
+        Enemy.physicsBody?.collisionBitMask = PhysicsCategory.SmallBall | PhysicsCategory.MainBall
+        Enemy.physicsBody?.isDynamic = false
+        Enemy.name = "Enemy"
+    
         
         let edgeOfScreen = arc4random() % 4
         
